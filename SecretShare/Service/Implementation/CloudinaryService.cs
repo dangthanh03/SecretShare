@@ -18,7 +18,7 @@ public class CloudinaryService : ICloudinaryService
         _context = context;
     }
 
-    public async Task<Result<UploadedFile>> UploadFile(IFormFile file, string userId, bool autoDelete)
+    public async Task<Result<UploadedFile>> UploadFile(IFormFile file, string userId, bool autoDelete,bool PublicFile) //Upload file to cloud
     {
         try
         {
@@ -29,18 +29,19 @@ public class CloudinaryService : ICloudinaryService
                     File = new FileDescription(file.FileName, stream)
                 };
 
-                var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+                var uploadResult = await _cloudinary.UploadAsync(uploadParams); // Upload the file to cloudinary
 
-                var uploadedFile = new UploadedFile
+                var uploadedFile = new UploadedFile  // Create a new UploadedFile object
                 {
                     Id = Guid.NewGuid().ToString(),
                     UserId = userId,
                     FilePath = uploadResult.Url.ToString(),
                     AutoDelete = autoDelete,
-                    UploadDate = DateTime.UtcNow
+                    UploadDate = DateTime.UtcNow,
+                    PublicFile = PublicFile
                 };
 
-                _context.UploadedFiles.Add(uploadedFile);
+                _context.UploadedFiles.Add(uploadedFile); // Add the new UploadFile object to database
                 await _context.SaveChangesAsync();
 
                 return Result<UploadedFile>.Success(uploadedFile);
@@ -52,7 +53,7 @@ public class CloudinaryService : ICloudinaryService
         }
     }
 
-    public async Task<Result<UploadedText>> UploadText(string text, string userId, bool autoDelete)
+    public async Task<Result<UploadedText>> UploadText(string text, string userId, bool autoDelete, bool PublicText)
     {
         try
         {
@@ -68,20 +69,21 @@ public class CloudinaryService : ICloudinaryService
                     File = new FileDescription(tempFilePath, stream)
                 };
 
-                var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+                var uploadResult = await _cloudinary.UploadAsync(uploadParams); // Upload the text to cloudinary
                 System.IO.File.Delete(tempFilePath); // Clean up the temp file
 
-                var uploadedText = new UploadedText
+                var uploadedText = new UploadedText  // Create a new UploadedText object
                 {
                     Id = id,
                     UserId = userId,
                     Content = text,
                     FilePath = uploadResult.Url.ToString(),
                     AutoDelete = autoDelete,
-                    UploadDate = DateTime.UtcNow
+                    UploadDate = DateTime.UtcNow,
+                    PublicText = PublicText
                 };
 
-                _context.UploadedTexts.Add(uploadedText);
+                _context.UploadedTexts.Add(uploadedText); // Add the new UploadedText object to database
                 await _context.SaveChangesAsync();
 
                 return Result<UploadedText>.Success(uploadedText);
@@ -93,7 +95,7 @@ public class CloudinaryService : ICloudinaryService
         }
     }
 
-    public async Task<Result<string>> DeleteFile(string filePath)
+    public async Task<Result<string>> DeleteFile(string filePath) // Remove the file using the url leading to it on cloudinary
     {
         try
         {

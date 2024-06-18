@@ -28,15 +28,15 @@ namespace SecretShare.Controllers
         // Add this attribute to use JWT authenticate
         [Authorize]
         [HttpPost("upload/file")]
-        public async Task<IActionResult> UploadFile(IFormFile file, bool autoDelete = false)
+        public async Task<IActionResult> UploadFile(IFormFile file, bool autoDelete = false, bool PublicFile = true) // Upload file
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value; // Get the user ID from the token
-            var result = await _cloudinaryService.UploadFile(file, userId, autoDelete);
+            var result = await _cloudinaryService.UploadFile(file, userId, autoDelete,PublicFile); // Upload file to cloudinary
             if (result.IsSuccess)
             {
                 var fileId = result.Data.Id;
                 var fileUrl = Url.Action("GetFile", "Files", new { id = fileId }, Request.Scheme);
-                return Ok(new { FileUrl = fileUrl });
+                return Ok(new { FileUrl = fileUrl }); // Return the url which wil lead to the GetFile action in controller
             }
             return BadRequest(new { Message = result.Message });
         }
@@ -44,36 +44,37 @@ namespace SecretShare.Controllers
 
         [Authorize]
         [HttpPost("upload/text")]
-        public async Task<IActionResult> UploadText([FromBody] string text, bool autoDelete = false)
+        public async Task<IActionResult> UploadText([FromBody] string text, bool autoDelete = false,bool PublicText=true) // Upload text
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value; // Get the user ID from the token
-            var result = await _cloudinaryService.UploadText(text, userId, autoDelete);
+            var result = await _cloudinaryService.UploadText(text, userId, autoDelete,PublicText);  // Upload file to cloudinary
             if (result.IsSuccess)
             {
                 var textId = result.Data.Id;
                 var textUrl = Url.Action("GetText", "Files", new { id = textId }, Request.Scheme);
-                return Ok(new { TextUrl = textUrl });
+                return Ok(new { TextUrl = textUrl }); // Return the url which wil lead to the GetText action in controller
             }
             return BadRequest(new { Message = result.Message });
         }
 
         
         [HttpGet("file/{id}")]
-        public async Task<IActionResult> GetFile(string id)
+        public async Task<IActionResult> GetFile(string id) // Get file via id
         {
-            var result = await _fileService.GetFileById(id);
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value; // Get the user ID from the token
+            var result = await _fileService.GetFileById(id,userId);
             if (!result.IsSuccess)
             {
                 return NotFound(new { Message = result.Message });
             }
-            if(result.Data.AutoDelete && result.Data.HasbeenDowloaded)
+            if(result.Data.AutoDelete && result.Data.HasbeenDowloaded) // Check whether the file has been downloaded and has auto delete after dowloading
             {
                 return BadRequest(new { Message = "File has been deleted"});
 
             }
 
             var file = result.Data;
-            var filePath = file.FilePath;
+            var filePath = file.FilePath; // The url leading to the file on cloudinary
 
             using (var httpClient = new HttpClient())
             {
@@ -83,11 +84,11 @@ namespace SecretShare.Controllers
                     await fileStream.CopyToAsync(memoryStream);
                     var fileBytes = memoryStream.ToArray();
                     result.Data.HasbeenDowloaded = true;
-                    _context.SaveChangesAsync();
+                    _context.SaveChangesAsync(); // Update the HasbeenDowloaded column in database
                     if (file.AutoDelete)
                     {
                     
-                        await _cloudinaryService.DeleteFile(filePath);
+                        await _cloudinaryService.DeleteFile(filePath); //Delete file from cloudinary
                     }
 
                     return File(fileBytes, "application/octet-stream", Path.GetFileName(filePath));
@@ -95,21 +96,22 @@ namespace SecretShare.Controllers
             }
         }
         [HttpGet("text/{id}")]
-        public async Task<IActionResult> GetText(string id)
+        public async Task<IActionResult> GetText(string id) //Get text via id
         {
-            var result = await _fileService.GetTextById(id);
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value; // Get the user ID from the token
+            var result = await _fileService.GetTextById(id,userId);
             if (!result.IsSuccess)
             {
                 return NotFound(new { Message = result.Message });
             }
-            if (result.Data.AutoDelete && result.Data.HasbeenDowloaded)
+            if (result.Data.AutoDelete && result.Data.HasbeenDowloaded) // Check whether the text has been downloaded and has auto delete after dowloading
             {
                 return BadRequest(new { Message = "Text has been deleted" });
 
             }
 
             var file = result.Data;
-            var filePath = file.FilePath;
+            var filePath = file.FilePath;  // The url leading to the file on cloudinary
 
             using (var httpClient = new HttpClient())
             {
@@ -119,11 +121,11 @@ namespace SecretShare.Controllers
                     await fileStream.CopyToAsync(memoryStream);
                     var fileBytes = memoryStream.ToArray();
                     result.Data.HasbeenDowloaded = true;
-                    _context.SaveChangesAsync();
+                    _context.SaveChangesAsync();  // Update the HasbeenDowloaded column in database
                     if (file.AutoDelete)
                     {
 
-                        await _cloudinaryService.DeleteFile(filePath);
+                        await _cloudinaryService.DeleteFile(filePath); //Delete file from cloudinary
                     }
 
                     return File(fileBytes, "application/octet-stream", Path.GetFileName(filePath));
@@ -133,7 +135,7 @@ namespace SecretShare.Controllers
 
     
         [HttpGet("uploaded-files")]
-        public async Task<IActionResult> GetAllUploadedFiles()
+        public async Task<IActionResult> GetAllUploadedFiles() // Get all of uploaded files, this action is for testing
         {
             var result = await _fileService.GetAllUploadedFiles();
 
@@ -146,7 +148,7 @@ namespace SecretShare.Controllers
 
       
         [HttpGet("uploaded-texts")]
-        public async Task<IActionResult> GetAllUploadedTexts()
+        public async Task<IActionResult> GetAllUploadedTexts() // Get all of uploaded text, this action is for testing
         {
             var result = await _fileService.GetAllUploadedTexts();
 
@@ -159,9 +161,9 @@ namespace SecretShare.Controllers
 
         [Authorize]
         [HttpGet("user-files")]
-        public async Task<IActionResult> GetUserFiles()
+        public async Task<IActionResult> GetUserFiles()  // Get all files which was uploaded by the logged-in user
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value; // Get the user ID from the token
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized(new { Message = "User not authorized" });
@@ -177,15 +179,39 @@ namespace SecretShare.Controllers
 
         [Authorize]
         [HttpGet("user-texts")]
-        public async Task<IActionResult> GetUserTexts()
+        public async Task<IActionResult> GetUserTexts() // Get all texts which was uploaded by the logged-in user
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value; // Get the user ID from the token
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized(new { Message = "User not authorized" });
             }
 
             var result = await _fileService.GetTextsByUserId(userId);
+            if (result.IsSuccess)
+            {
+                return Ok(result.Data);
+            }
+            return BadRequest(new { Message = result.Message });
+        }
+
+        [HttpGet("public-files/{userId}")]
+        public async Task<IActionResult> GetPublicFilesByUserId(string userId) // Get public files from a specific user 
+        {
+            var result = await _fileService.GetPublicFilesByUserId(userId);
+
+            if (result.IsSuccess)
+            {
+                return Ok(result.Data);
+            }
+            return BadRequest(new { Message = result.Message });
+        }
+
+        [HttpGet("public-texts/{userId}")]
+        public async Task<IActionResult> GetPublicTextsByUserId(string userId)  // Get public files texts a specific user 
+        {
+            var result = await _fileService.GetPublicTextsByUserId(userId);
+
             if (result.IsSuccess)
             {
                 return Ok(result.Data);

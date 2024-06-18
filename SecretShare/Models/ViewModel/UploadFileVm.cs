@@ -9,6 +9,7 @@
         public bool AutoDelete { get; set; }
         public DateTime UploadDate { get; set; }
         public bool HasbeenDowloaded { get; set; }
-       
+        public bool PublicFile { get; set; } = true;
+
     }
 }

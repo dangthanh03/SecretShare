@@ -35,7 +35,7 @@ namespace SecretShare.Controllers
 
             if (result.IsSuccess)
             {
-                return Ok(new { Token = result.Data });
+                return Ok(new { Token = result.Data }); // Give the user a token for authentication
             }
             return Unauthorized(result.Message);
         }
