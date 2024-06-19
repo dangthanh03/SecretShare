@@ -19,6 +19,10 @@ namespace SecretShare.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterModel model)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
             var result = await _accountService.RegisterAsync(model);
 
             if (result.IsSuccess)
@@ -31,6 +35,7 @@ namespace SecretShare.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
+
             var result = await _accountService.LoginAsync(model);
 
             if (result.IsSuccess)
