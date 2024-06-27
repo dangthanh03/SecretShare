@@ -14,3 +14,8 @@ a better level of protection is welcomed)
 
 3. Anonymous users can:
 a. Access files/texts using the URLs generated from steps 2.a, 2.b
+
+Additional: 
+1. When uploading files, the uploader can decide wheter or  not to put the file on public or private, if set to private then the uploader
+is the only one who can access the file.
+2. You can see all public file from a particular user.
