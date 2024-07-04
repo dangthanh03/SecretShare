@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using SecretShare.Models.Domains;
 using SecretShare.Models.Service.Abstract;
 using SecretShare.Models.ViewModel;
@@ -12,11 +13,14 @@ namespace SecretShare.Models.Service.Implementation
 {
     public class FileService : IFileService
     {
+        private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(10);
         private readonly ApplicationDbContext _context;
+        private readonly ICacheService _cacheService;
 
-        public FileService(ApplicationDbContext context)
+        public FileService(ApplicationDbContext context, ICacheService cache)
         {
             _context = context;
+            _cacheService = cache;
         }
 
         public async Task<Result<UploadedFile>> GetFileById(string id, string userId)
@@ -54,25 +58,33 @@ namespace SecretShare.Models.Service.Implementation
         {
             try
             {
-                var files = await _context.UploadedFiles.ToListAsync();
-                var fileViewModels = files.Select(file => new UploadFileVm
-                {
-                    Id = file.Id,
-                    UserId = file.UserId,
-                    AutoDelete = file.AutoDelete,
-                    UploadDate = file.UploadDate,
-                    HasbeenDowloaded= file.HasbeenDowloaded,
-                    PublicFile = file.PublicFile,
+                string cacheKey = "GetAllUploadedFiles";
 
-                    
-                }).ToList();
-                return Result<List<UploadFileVm>>.Success(fileViewModels);
+                // Sử dụng GetOrCreateAsync để lấy dữ liệu từ cache hoặc thêm mới vào cache
+                var cachedFiles = await _cacheService.GetOrCreateAsync(cacheKey, async () =>
+                {
+                    var files = await _context.UploadedFiles.ToListAsync();
+                    var fileViewModels = files.Select(file => new UploadFileVm
+                    {
+                        Id = file.Id,
+                        UserId = file.UserId,
+                        AutoDelete = file.AutoDelete,
+                        UploadDate = file.UploadDate,
+                        HasbeenDowloaded = file.HasbeenDowloaded,
+                        PublicFile = file.PublicFile
+                    }).ToList();
+                    return fileViewModels;
+                });
+
+                return Result<List<UploadFileVm>>.Success(cachedFiles);
             }
             catch (Exception ex)
             {
                 return Result<List<UploadFileVm>>.Fail($"Failed to retrieve files: {ex.Message}");
             }
         }
+
+
 
         public async Task<Result<List<UploadTextVm>>> GetAllUploadedTexts() // Get all texts. This is only for testing
         {
@@ -96,21 +108,32 @@ namespace SecretShare.Models.Service.Implementation
                 return Result<List<UploadTextVm>>.Fail($"Failed to retrieve texts: {ex.Message}");
             }
         }
-        public async Task<Result<List<UploadFileVm>>> GetFilesByUserId(string userId) // Get file from the current logged-in user
+        public async Task<Result<List<UploadFileVm>>> GetFilesByUserId(string userId)
         {
             try
             {
-                var files = await _context.UploadedFiles.Where(file => file.UserId == userId).ToListAsync();
-                var fileViewModels = files.Select(file => new UploadFileVm          // inject data from linq into viewmodel
+                string cacheKey = $"GetFilesByUserId_{userId}";
+
+                var cachedFiles = await _cacheService.GetOrCreateAsync(cacheKey, async () =>
                 {
-                    Id = file.Id,
-                    UserId = file.UserId,
-                    AutoDelete = file.AutoDelete,
-                    UploadDate = file.UploadDate,
-                    HasbeenDowloaded = file.HasbeenDowloaded,
-                    PublicFile=file.PublicFile
-                }).ToList();
-                return Result<List<UploadFileVm>>.Success(fileViewModels);
+                    var files = await _context.UploadedFiles
+                        .Where(file => file.UserId == userId && file.PublicFile)
+                        .ToListAsync();
+
+                    var fileViewModels = files.Select(file => new UploadFileVm
+                    {
+                        Id = file.Id,
+                        UserId = file.UserId,
+                        AutoDelete = file.AutoDelete,
+                        UploadDate = file.UploadDate,
+                        HasbeenDowloaded = file.HasbeenDowloaded,
+                        PublicFile = file.PublicFile
+                    }).ToList();
+
+                    return fileViewModels;
+                });
+
+                return Result<List<UploadFileVm>>.Success(cachedFiles);
             }
             catch (Exception ex)
             {

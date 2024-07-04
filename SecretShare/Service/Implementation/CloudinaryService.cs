@@ -3,6 +3,7 @@ using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Http;
 using SecretShare.Models.Domains;
 using SecretShare.Models.Service.Abstract;
+using SecretShare.Service.Abstract;
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -11,11 +12,13 @@ public class CloudinaryService : ICloudinaryService
 {
     private readonly Cloudinary _cloudinary;
     private readonly ApplicationDbContext _context;
+    private readonly ICacheService _cacheService;
 
-    public CloudinaryService(Cloudinary cloudinary, ApplicationDbContext context)
+    public CloudinaryService(Cloudinary cloudinary, ApplicationDbContext context, ICacheService cacheService)
     {
         _cloudinary = cloudinary;
         _context = context;
+        _cacheService = cacheService;
     }
 
     public async Task<Result<UploadedFile>> UploadFile(IFormFile file, string userId, bool autoDelete,bool PublicFile) //Upload file to cloud
@@ -43,6 +46,7 @@ public class CloudinaryService : ICloudinaryService
 
                 _context.UploadedFiles.Add(uploadedFile); // Add the new UploadFile object to database
                 await _context.SaveChangesAsync();
+                _cacheService.Remove("GetAllUploadedFiles");
 
                 return Result<UploadedFile>.Success(uploadedFile);
             }

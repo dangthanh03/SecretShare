@@ -8,12 +8,14 @@ using SecretShare.Models.Domains;
 using SecretShare.Models.Service.Abstract;
 using SecretShare.Models.Service.Implementation;
 using SecretShare.Service.Abstract;
+using SecretShare.Service.Implementation;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -48,6 +50,7 @@ builder.Services.AddSingleton(cloudinary);
 builder.Services.AddTransient<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IFileService,FileService>();
+builder.Services.AddSingleton<ICacheService, CacheService>();
 
 var app = builder.Build();
 
