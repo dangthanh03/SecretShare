@@ -19,3 +19,5 @@ Additional:
 1. When uploading files, the uploader can decide wheter or  not to put the file on public or private, if set to private then the uploader
 is the only one who can access the file.
 2. You can see all public file from a particular user.
+3. You can see all files you have uploaded.
+4. When you first access your history, your data will be saved in a cache for absolute 60 minutes. Also, data that is shared among all users will be saved in cache for 60 minutes.
