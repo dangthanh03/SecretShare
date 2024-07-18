@@ -10,10 +10,12 @@ namespace SecretShare.Controllers
     public class AccountController : ControllerBase
     {
         private readonly IAccountService _accountService;
+        private readonly ILogger<AccountController> _logger;
 
-        public AccountController(IAccountService accountService)
+        public AccountController(IAccountService accountService, ILogger<AccountController> logger)
         {
             _accountService = accountService;
+            _logger = logger;
         }
 
         [HttpPost("register")]
@@ -35,15 +37,37 @@ namespace SecretShare.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
             var result = await _accountService.LoginAsync(model);
-
-            if (result.IsSuccess)
+            if (!result.IsSuccess)
             {
-                return Ok(new { Token = result.Data }); // Give the user a token for authentication
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Failed to create user: {result.Message}");
             }
-            return Unauthorized(result.Message);
+
+            return Ok(result.Data);
         }
+
+        [HttpPost("Refresh")]
+        public async Task<IActionResult> Refresh([FromBody] RefreshModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await _accountService.Refresh(model);
+            if (!result.IsSuccess)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Failed to create user: {result.Message}");
+            }
+
+            return Ok(result.Data);
+        }
+
 
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
