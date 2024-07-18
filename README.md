@@ -21,3 +21,4 @@ is the only one who can access the file.
 2. You can see all public file from a particular user.
 3. You can see all files you have uploaded.
 4. When you first access your history, your data will be saved in a cache for absolute 60 minutes. Also, data that is shared among all users will be saved in cache for 60 minutes.
+5. When a user logs in, they receive two tokens: an access token and a refresh token. The access token has a shorter lifespan and is used to access protected resources, while the refresh token has a longer lifespan and is used to obtain a new access token when the current one expires. If the access token expires, the user needs to use the refresh token to get a new access token. However, if both the access token and the refresh token expire, the user must log in again to receive new tokens. 
